@@ -31,6 +31,7 @@ export default {
         const rate_min = 50
         const leaving = ref(false)
         const replybox = ref(null)
+        const test = ref(null)
 
         const rate = ref(computed(() => {
                 let my_rate = 1000 * (5/comment_queue.value.length)
