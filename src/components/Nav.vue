@@ -5,17 +5,22 @@
           <router-link :to="{name:'Home'}" class="menu-item large noselect">liveTHREADDIT</router-link>
       </div>
       <div class="center-menu">
-          <div v-if='title && mode' class="menu-item noselect">{{ title }}</div>
+          <a v-if='title && mode' :href='titleurl' class="menu-item noselect">{{ title }}</a>
       </div>
       <div class="right-menu">
             <div v-if='mode' class="menu-item icon noselect">
                 <i v-if='notification' class="fas fa-bell"></i>
                 <i v-if='!notification' class="far fa-bell"></i>
             </div>
-            <div v-if='mode' class="menu-item icon noselect"><i class="fas fa-cog"></i></div>
-            <div class="menu-item icon noselect">
-                <i v-if='logged_in' class="fas fa-user"></i>
-                <i v-if='!logged_in' class="far fa-user"></i>
+            <div v-if='mode' class="menu-item icon"><i class="fas fa-cog"></i></div>
+            <div v-if='logged_in && !hoveringuser' @mouseenter='handleHoverEnter' class="menu-item icon noselect login">
+                <i class="fas fa-user"></i>
+            </div>
+            <div v-if='logged_in && hoveringuser' @click='handleLogoutClick' @mouseleave='handleHoverLeave' class="menu-item icon noselect login">
+                <i class="far fa-user"></i>
+            </div>
+            <div v-if='!logged_in' @click='handleLoginClick' class="menu-item icon noselect">
+                <i  class="far fa-user"></i>
             </div>
       </div>
   </nav>
@@ -25,9 +30,28 @@
 <script>
 import { ref } from 'vue'
 export default {
-    props: ['title', 'logged_in', 'notification', 'mode'],
-    setup() {
+    props: ['title', 'logged_in', 'notification', 'mode', 'threadid', 'subreddit'],
+    setup(props, { emit }) {
+    
+        const titleurl = 'https://www.reddit.com/r/' + props.subreddit + '/comments/' + props.threadid + '/'
+        const hoveringuser = ref(false)
+        const handleLoginClick = () => {
+            emit('login')
+        }
 
+        const handleHoverEnter = () => {
+            hoveringuser.value = true
+        }
+
+        const handleHoverLeave = () => {
+            hoveringuser.value = false
+        }
+
+        const handleLogoutClick = () => {
+            emit('logout')
+        }
+
+    return {handleLoginClick, handleLogoutClick, titleurl, hoveringuser, handleHoverEnter, handleHoverLeave}
     }
 }
 </script>s
@@ -80,6 +104,11 @@ export default {
     flex: 2;
     justify-content: space-around;
     align-items: center;
+}
+
+.menu-item.icon.login:hover {
+    text-shadow: 0px 0px 10px rgb(255, 83, 83);
+    color:  rgb(255, 83, 83);
 }
 
 </style>

@@ -1,23 +1,28 @@
 <template>
-<link href="https://fonts.googleapis.com/css2?family=Megrim&family=Nunito&display=swap" rel="stylesheet">
-  <Nav :mode='false'/>
-  <form class="search-form">
+<link href="https://fonts.googleapis.com/css2?family=Megrim&family=Nunito&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <Nav @login='handleLoginClick' @logout='handleLogoutClick' :logged_in="logged_in" :mode='false'/>
+  <form @submit.prevent='handleForm' class="search-form">
     <input v-model='search_content' @mousedown='handleInputClick' class='search' type="text">
     <button class="search-button noselect">GO</button>
   </form>
 </template>
 
 <script>
-import { ref } from 'vue'
+
+import { ref, computed } from 'vue'
 import Nav from '../components/Nav.vue'
+import { useRoute, useRouter } from 'vue-router'
+
 export default {
   name: 'Home',
   components: {Nav},
 
   setup() {
-
+    const logged_in = ref(false)
     const search_content = ref('Enter a Reddit thread...')
     const default_search_value = ref(true)
+    const route = useRoute()
+    const router = useRouter()
 
     const handleInputClick = () => {
       if(default_search_value.value){
@@ -26,7 +31,41 @@ export default {
       }
     }
 
-    return {search_content, default_search_value, handleInputClick}
+    const handleLoginClick = async () => {
+      document.cookie = 'redirect=http://localhost:8080' + route.path;
+        let response = await fetch('http://localhost:5000/login', {
+            method: 'POST',
+            headers: {'Content-Type' : 'application/json'},
+            body: JSON.stringify({
+                'redirect' : 'http://localhost:8080' + route.path
+            })
+        })
+
+      let response_json = await response.json()
+      let redirect_uri = response_json.url
+      window.location = redirect_uri
+    }
+
+    const handleLogoutClick = () => {
+      document.cookie = "user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      checkForLogin()
+    }
+
+    const checkForLogin = () => {
+      var b = document.cookie.match('(^|;)\\s*' + 'user' + '\\s*=\\s*([^;]+)');
+      logged_in.value =  b ? b.pop() : false; 
+    }
+
+    const handleForm = () => {
+      let parts = search_content.value.split('/')
+      let newuri = 'http://localhost8080:/r/' + parts[4] + '/comments/' + parts[6]
+      router.push({name: 'LiveThread', params: {subreddit: parts[4], threadid: parts[6], temptitle: parts[7]}})
+    }      
+    
+
+    checkForLogin()
+
+    return {search_content, default_search_value, handleInputClick, handleLoginClick, logged_in, checkForLogin, handleLogoutClick, handleForm}
 
   }
 

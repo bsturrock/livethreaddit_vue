@@ -18,17 +18,16 @@ def initThread():
     data = request.get_json()
     threadid = data['threadid']
     subreddit = data['subreddit']
+    title = data['title']
     if RedditThread.is_in(threadid):
         return jsonify({
             'status' : 'RedditThread already exists',
-            'title' : RedditThread.activethreads[threadid].title
         })
     else:
         title = redd.submission(id=threadid).title
         new_reddit_thread = RedditThread(threadid,subreddit,title)
         return jsonify({
             'status' : 'New RedditThread created',
-            'title' : title
         })
 
 
@@ -47,6 +46,11 @@ def getComments():
     if my_thread is not None:
         my_commentbox = my_thread.CommentBox
         comments = my_commentbox.returnComments(counter)
+        if comments == 'locked':
+            return jsonify({
+                'status': 'locked',
+            })
+
         if len(comments) > 0:
             counter = comments[-1]['counter']
             comments.reverse()
@@ -57,13 +61,13 @@ def getComments():
             })
         else:
             return {
-                'status' : 'fail',
+                'status' : 'length of returned comments is 0',
                 'counter' : counter,
                 'comments' : []
             }            
     else:
         return {
-            'status' : 'fail',
+            'status' : 'thread is none',
             'counter' : counter,
             'comments' : []
         }
@@ -74,8 +78,11 @@ def getComments():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'GET':
+    if request.method == 'POST':
+        redirect = request.get_json()
+        redirect = redirect['redirect']
         url = redd.auth.url(['identity submit read'],'...','permanent')
+        
         return jsonify({
             'url' : url
         })
@@ -100,10 +107,13 @@ def authorized():
     me = RedditUser(my_instance.user.me().name,code,my_instance,authorized_code)
 
     #create cookie and redirect#
-    returnurl = request.cookies.get('red')
+    returnurl = request.cookies.get('redirect')
+    print(returnurl)
     res = make_response("")
+
     res.set_cookie("user", me.userhash.hexdigest(), 60*60*12)
-    res.headers['location'] = returnurl
+    print(returnurl)
+    res.headers['location'] = 'http://localhost:8080/redirect'
     return res, 302
 
 
@@ -132,9 +142,32 @@ def activeusers():
 def postComment():
     if request.method=='POST':
         data = request.get_json()
-        user_hash = data['hash']
+        user_hash = data['user_hash']
         body = data['body']
         threadid = data['threadid']
-        instance = RedditUser.findActiveUser(user_hash)
-        mysub = instance.submission(id=threadid).reply(body)
-        return mysub.id
+        if data['reply'] == 'false' or data['reply'] == False:
+            instance = RedditUser.findActiveUser(user_hash)
+            mysub = instance.submission(id=threadid).reply(body)
+            return {
+                'id' : mysub.id
+            }
+        elif data['reply'] == True or data['reply'] == 'true':
+            replying_to = data['replying_to']
+            print(replying_to)
+            instance = RedditUser.findActiveUser(user_hash)
+            my_comment = instance.comment(id=data['replying_to'])
+            print(my_comment)
+            my_comment = my_comment.reply(body)
+            return {
+                'id' : my_comment.id
+            }
+
+
+@app.route('/title', methods=['POST'])
+def getTitle():
+    data = request.get_json()
+    threadid = data['threadid']
+    title = redd.submission(id=threadid).title
+    return jsonify({
+        'title' : title
+    })
