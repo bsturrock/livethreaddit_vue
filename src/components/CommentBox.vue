@@ -1,16 +1,18 @@
 <template>
     <div class="chat">
-        <Comment v-for='comment in shown_comments' :key='comment.id' @commentclick="handleCommentClick" :comment='comment' />
+        <Comment v-for='comment in shown_comments' :key='comment.id' :comment='comment' :clicked_comment='clicked_comment' @commentclick="handleCommentClick"/>
     </div>
     <form @submit.prevent='post' class='reply'>
-        <textarea ref='replybox' v-bind:class="{replying: currently_replying}" spellcheck="false" v-model='usercomment'></textarea>
+        <textarea ref='replybox' v-on:keydown ="handleBackSpace($event)" v-bind:class="{replying: currently_replying}" spellcheck="false" v-model='usercomment'></textarea>
         <button v-if='!currently_replying' @click='postNonReply' class="reply-button"><i class="fas fa-share"></i></button>
         <button v-if='currently_replying'  class='reply-button replying'><i class="fas fa-reply-all"></i></button>
     </form>
 
 </template>
 
+
 <script>
+
 import Comment from '../components/Comment.vue'
 import { ref, computed, watchEffect } from 'vue'
 import { onMounted, onUpdated, onUnmounted } from 'vue'
@@ -32,7 +34,21 @@ export default {
         const leaving = ref(false)
         const replybox = ref(null)
         const test = ref(null)
+        const clicked_comment = ref(null)
+        const just_reply_info = ref(false)
 
+        const handleBackSpace = (event) => {
+
+            if(event.key == 'Backspace' && just_reply_info.value) {
+                usercomment.value = ''
+                just_reply_info.value = false
+                
+            } else if ((event.keyCode >= 48 && event.keyCode <= 57) || (event.keyCode >= 65 && event.keyCode <= 90) || event.keyCode == 32) {
+                just_reply_info.value = false
+            }
+            
+        }
+                
         const rate = ref(computed(() => {
                 let my_rate = 1000 * (5/comment_queue.value.length)
                 if(my_rate >= rate_max){
@@ -41,13 +57,17 @@ export default {
                     my_rate = rate_min
                 }
                 return my_rate
-            }))
+        }))
 
         watchEffect(() => {
             if(usercomment.value == '') {
                 replying_to_user.value = ''
                 replying_to_id.value = ''
                 currently_replying.value = false
+                clicked_comment.value = null
+            }
+            if(usercomment.value == '@' + replying_to_user.value + ' ') {
+                just_reply_info.value = true
             }
         })
 
@@ -147,8 +167,10 @@ export default {
             replying_to_user.value = comment.author
             replying_to_id.value = comment.id
             currently_replying.value = true
+            clicked_comment.value = comment.id
+            console.log(clicked_comment.value)
+            just_reply_info.value = true
             replybox.value.focus()
-
         }
 
         const moving_comments = ref(setTimeout(moveCommentsToShown,200))
@@ -159,7 +181,7 @@ export default {
             leaving.value = true
         })
         
-        return { comment_queue, shown_comments, usercomment, rate, counter, handleCommentClick, replybox, replying_to_user, currently_replying, replying_to_id, post}        
+        return { comment_queue, shown_comments, usercomment, rate, counter, handleCommentClick, replybox, replying_to_user, currently_replying, replying_to_id, post, clicked_comment, just_reply_info, handleBackSpace}        
     }
 
 }
@@ -232,8 +254,18 @@ export default {
     background: rgb(25,25,25);
 }
 
+.reply textarea:focus + .reply-button:hover {
+    background: rgba(50,50,50,1);
+    cursor: pointer;
+}
+
 .reply textarea.replying:focus + .reply-button.replying {
     border: 1px solid turquoise;
+    background: rgb(19, 36, 34);
+}
+
+.reply textarea.replying:focus + .reply-button.replying:hover {
+    background: rgb(29, 68, 64);
 }
 
 .reply-button.replying {

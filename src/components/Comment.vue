@@ -12,15 +12,21 @@
 <script>
 import { ref, watchEffect } from 'vue'
 export default {
-    props: ['comment'],
+    props: ['comment', 'clicked_comment'],
     emits: ['commentclick'],
     setup(props, { emit }) {
 
         const is_clicked = ref(false)
 
+        watchEffect(() => {
+            if(props.clicked_comment == props.comment.id) {
+                is_clicked.value = true
+            } else {
+                is_clicked.value = false
+            }
+        });
+
         const handleCommentClick = () => {
-            console.log('clicked')
-            is_clicked.value = !is_clicked.value
             emit('commentclick', props.comment)
         }
 
@@ -40,7 +46,15 @@ export default {
     }
 
     .comment.clicked {
-        background: rgb(102, 151, 146);
+        background: rgb(58, 78, 76);
+    }
+
+    .comment.clicked .timestamp {
+        color: white;
+    }
+
+    .comment.clicked:hover {
+        background: rgb(82, 112, 109);
     }
     
 
