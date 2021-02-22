@@ -33,7 +33,6 @@ export default {
         const rate_min = 50
         const leaving = ref(false)
         const replybox = ref(null)
-        const test = ref(null)
         const clicked_comment = ref(null)
         const just_reply_info = ref(false)
 
